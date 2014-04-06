@@ -49,8 +49,15 @@ def output_cards(img):
     #img.addDrawingLayer(boxlayer)
     #img.applyLayers()
     #img.show()
-    cropped = [img.crop(*c) for c in boxes]
-    return cropped
+    ranks = [read_card(card) for card in cropped]
+    text = []
+    for rank, c in zip(ranks, boxes):
+        if rank:
+            text.append((word(rank), c[0], c[1]))
+    for s, x, y in text:
+        img.drawText(s, x=x, y=y, color=Color.BLACK, fontsize=56)
+    img.show()
+    time.sleep(5)
 
 def find_color(card_img):
     # Takes normalized card
@@ -129,7 +136,7 @@ def read_card(card_img):
     count = 0
     boxes = [blob.boundingBox() for blob in blobs]
     rank = find_rank(card_img, boxes)
-    print rank
+    return rank
     suit = find_suit(card_img, boxes)
     # display this guess
 
@@ -175,6 +182,4 @@ def find_rank(card_img, boxes):
 for file in files:
     print "New image"
     img = Image(file, colorSpace=ColorSpace.BGR).scale(0.2)
-    cards = output_cards(img)
-    for card in cards:
-        read_card(card)
+    output_cards(img)
