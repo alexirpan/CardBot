@@ -3,24 +3,19 @@ import os
 import glob
 import time
 
-cards_path = "sampleCards/"
-extension = "*.jpg"
+debugCard = False
 
-directory = os.path.join(cards_path, extension)
-files = glob.glob(directory)
+def output_cards(img, disp):
+    size_threshold = 5000
+    ratio = 1.4 # taken from a picture
 
-size_threshold = 5000
-ratio = 1.4 # taken from a picture
-normalized_side_width = 200.0 # random value
-
-def output_cards(img):
     modified = img
     edges = modified.edges()
-    edges.show()
-    time.sleep(1)
     blobs = edges.findBlobs()
     boxlayer = DrawingLayer((img.width, img.height))
     to_crop_to = []
+    if not blobs:
+        return
     for blob in blobs:
         x, y, w, h = blob.boundingBox()
         imgratio = max(w,h) / float(min(w,h))
@@ -32,8 +27,6 @@ def output_cards(img):
                 to_crop_to.append((x,y,w,h))
     img.addDrawingLayer(boxlayer)
     img.applyLayers()
-    img.show()
-    time.sleep(1)
     # some post processing
     # face cards have blobs in the center, which we don't want
     # check if a box contains another, remove inner box
@@ -50,14 +43,17 @@ def output_cards(img):
     #img.applyLayers()
     #img.show()
     cropped = [img.crop(*c) for c in boxes]
-    return cropped
+    if not cropped:
+        return
+    for card in cropped:
+        read_card(card)
+    img.save(disp)
 
 def find_color(card_img):
     # Takes normalized card
     # Get the top left corner (roughly)
     rank_and_suit = card_img.crop(8,8,24,64)
     rank_and_suit.show()
-    time.sleep(1)
     # count red pixels and black pixels
     # red: RGB value has R as largest value, R is above 100
     # black: Each value below threshold
@@ -111,10 +107,10 @@ def find_suit(card_img, boxes):
         copy.addDrawingLayer(dl)
         copy.applyLayers()
         copy.show()
-        time.sleep(0.75)
     
 def read_card(card_img):
     # normalize card
+    normalized_side_width = 200.0 # random value
     if card_img.width > card_img.height:
         card_img = card_img.rotate(90, fixed=False)
     card_img = card_img.scale(normalized_side_width / card_img.width)
@@ -122,10 +118,11 @@ def read_card(card_img):
     suit_width = 18
     suit_height = 22 # +/- a bit
     
-    card_img.show()
-    time.sleep(0.75)
+    #card_img.save(disp)
     # check_suit(card_img)
     blobs = card_img.edges().findBlobs()
+    if not blobs:
+        return
     count = 0
     boxes = [blob.boundingBox() for blob in blobs]
     rank = find_rank(card_img, boxes)
@@ -146,15 +143,15 @@ def find_rank(card_img, boxes):
             boxlayer.rectangle((x, y), (w,h), width=2, color=Color.RED)
     card_img.addDrawingLayer(boxlayer)
     card_img.applyLayers()
-    card_img.show()
-    time.sleep(4)
+    #card_img.save(disp)
     # check for face card
     largest = [w*h for x,y,w,h in boxes]
     boxes = zip(boxes, largest)
     boxes.sort(key=lambda x: -x[1])
-    while 200*280 - boxes[0][1] < 10000:
+    while boxes and 200*280 - boxes[0][1] < 10000:
         boxes = boxes[1:]
-        
+    if not boxes:
+        return
     # check largest remaining for facecard
     if boxes[0][1] > 90*75:
         # is face card
@@ -171,10 +168,19 @@ def find_rank(card_img, boxes):
         return 1
     return numCells
     
-        
-for file in files:
-    print "New image"
-    img = Image(file, colorSpace=ColorSpace.BGR).scale(0.2)
-    cards = output_cards(img)
-    for card in cards:
-        read_card(card)
+if debugCard:
+    cards_path = "sampleCards/"
+    extension = "*.jpg"
+
+    directory = os.path.join(cards_path, extension)
+    files = glob.glob(directory)
+    suits_path = "suits/"
+    extension = "*.png"
+    suit_imgs = glob.glob(os.path.join(suits_path, extension))
+    
+    for file in files:
+        print "New image"
+        img = Image(file, colorSpace=ColorSpace.BGR).scale(0.2)
+        cards = output_cards(img)
+        for card in cards:
+            read_card(card)
