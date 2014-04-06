@@ -49,16 +49,45 @@ def output_cards(img):
     cropped = [img.crop(*c) for c in boxes]
     return cropped
 
+suits_path = "suits/"
+extension = "*.png"
+suit_imgs = glob.glob(os.path.join(suits_path, extension))
+    
+def check_suit(card_img):
+    t = 5
+
+    methods = ["SQR_DIFF","SQR_DIFF_NORM","CCOEFF","CCOEFF_NORM","CCORR","CCORR_NORM"] # the various types of template matching available
+    for m in methods:
+        copy = card_img.scale(1)
+        print "current method:", m # print the method being used
+        dl = DrawingLayer((copy.width, copy.height))
+        colors = [Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW]
+        curr = 0
+        for suit in suit_imgs:
+            fs = copy.findTemplate(Image(suit), threshold=t, method=m)
+            for match in fs:
+                dl.rectangle((match.x,match.y),(match.width(),match.height()),color=colors[curr])
+            curr += 1
+        copy.addDrawingLayer(dl)
+        copy.applyLayers()
+        copy.show()
+        time.sleep(1.5)
+    
 def read_card(card_img):
     # normalize card
     if card_img.width > card_img.height:
         card_img = card_img.rotate(90, fixed=False)
-    # determine suit by checking top left
-    suit_size = 20*20
+    normalized_size_width = 186.0# random value
+    card_img = card_img.scale(card_img.width / normalized_side_width)
+    # at normalized size,
+    suit_width = 18
+    suit_height = 22 # +/- a bit
+    
     card_img.show()
-    time.sleep(2)
+    time.sleep(1.5)
     card_img.edges().show()
-    time.sleep(2)
+    time.sleep(1.5)
+    check_suit(card_img)
     blobs = card_img.edges().findBlobs()
     count = 0
     boxlayer = DrawingLayer((card_img.width, card_img.height))
@@ -80,7 +109,7 @@ def read_card(card_img):
     card_img.applyLayers()
     card_img.show()
     print "guess of %d" % count
-    time.sleep(2)
+    time.sleep(1.5)
     
 import random
 for file in files:
