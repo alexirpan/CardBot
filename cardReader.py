@@ -9,7 +9,7 @@ extension = "*.jpg"
 directory = os.path.join(cards_path, extension)
 files = glob.glob(directory)
 
-size_threshold = 6000
+size_threshold = 5000
 ratio = 1.4 # taken from a picture
 normalized_side_width = 200.0 # random value
 
@@ -19,17 +19,21 @@ def output_cards(img):
     edges.show()
     time.sleep(1)
     blobs = edges.findBlobs()
-    #boxlayer = DrawingLayer((img.width, img.height))
+    boxlayer = DrawingLayer((img.width, img.height))
     to_crop_to = []
     for blob in blobs:
         x, y, w, h = blob.boundingBox()
         imgratio = max(w,h) / float(min(w,h))
-      #  print w*h
+        #print w*h
         if w*h >= size_threshold:
-     #       boxlayer.rectangle((x, y), (w,h), width=2, color=Color.GREEN)
-       #     print imgratio
+            boxlayer.rectangle((x, y), (w,h), width=2, color=Color.GREEN)
+            #print imgratio
             if abs(imgratio - ratio) <= 0.5:
                 to_crop_to.append((x,y,w,h))
+    img.addDrawingLayer(boxlayer)
+    img.applyLayers()
+    img.show()
+    time.sleep(1)
     # some post processing
     # face cards have blobs in the center, which we don't want
     # check if a box contains another, remove inner box
@@ -37,7 +41,7 @@ def output_cards(img):
     for x,y,w,h in to_crop_to:
         remove = False
         for x2,y2,w2,h2 in to_crop_to:
-            if x > x2 and y > y2 and w < w2 and h < h2:
+            if x > x2 and y > y2 and x+w < x2+w2 and y+h < y2+h2:
                 remove = True
                 break
         if remove:
@@ -113,7 +117,7 @@ def read_card(card_img):
     # normalize card
     if card_img.width > card_img.height:
         card_img = card_img.rotate(90, fixed=False)
-    card_img = card_img.scale(card_img.width / normalized_side_width)
+    card_img = card_img.scale(normalized_side_width / card_img.width)
     # at normalized size,
     suit_width = 18
     suit_height = 22 # +/- a bit
@@ -131,16 +135,19 @@ def read_card(card_img):
 
 def find_rank(card_img, boxes):
     # Debug drawing
-    print boxes
     boxlayer = DrawingLayer((card_img.width, card_img.height))
+    cellSize = 30*30
+    cellRatio = 1.15 # +/- at least 0.15
     for box in boxes:
         x,y,w,h = box
-        if w*h > 15*15:
-            boxlayer.rectangle((x, y), (w,h), width=2, color=Color.GREEN)
+        boxlayer.rectangle((x, y), (w,h), width=2, color=Color.GREEN)
+        ratio = max(w,h) / float(min(w,h))
+        if w*h > cellSize and w*h < 4*cellSize and abs(ratio - cellRatio) < 0.5:
+            boxlayer.rectangle((x, y), (w,h), width=2, color=Color.RED)
     card_img.addDrawingLayer(boxlayer)
     card_img.applyLayers()
     card_img.show()
-    time.sleep(1)
+    time.sleep(4)
     # check for face card
     largest = [w*h for x,y,w,h in boxes]
     boxes = zip(boxes, largest)
@@ -151,13 +158,17 @@ def find_rank(card_img, boxes):
     # check largest remaining for facecard
     if boxes[0][1] > 90*75:
         # is face card
-        print "face card?"
+        print "face card"
         return 10
-    numCells = len(filter(lambda x: x > 15*15, largest))
+    numCells = len(filter(lambda x: x > cellSize and x < 4*cellSize, largest))
     if numCells > 10:
         print "Something went wrong"
-        print "Guessing 9"
-        return 9
+        print "Guessing 10"
+        return 10
+    if numCells == 0:
+        print "Couldn't find cell"
+        print "Guess A"
+        return 1
     return numCells
     
         
