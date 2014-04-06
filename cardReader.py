@@ -13,6 +13,10 @@ size_threshold = 5000
 ratio = 1.4 # taken from a picture
 normalized_side_width = 200.0 # random value
 
+def word(val):
+    l = ['zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten']
+    return l[val]
+
 def output_cards(img):
     modified = img
     edges = modified.edges()
@@ -58,7 +62,7 @@ def output_cards(img):
     for s, x, y in text:
         img.drawText(s, x=x, y=y, color=Color.BLACK, fontsize=56)
     img.show()
-    time.sleep(5)
+    time.sleep(10)
 
 def find_color(card_img):
     # Takes normalized card
@@ -155,7 +159,7 @@ def find_rank(card_img, boxes):
     card_img.addDrawingLayer(boxlayer)
     card_img.applyLayers()
     card_img.show()
-    time.sleep(4)
+    time.sleep(0.75)
     # check for face card
     largest = [w*h for x,y,w,h in boxes]
     boxes = zip(boxes, largest)
