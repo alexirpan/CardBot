@@ -4,6 +4,8 @@ import glob
 import time
 
 debugCard = False
+last_time = [time.time()]
+text = [[]]
 
 def output_cards(img, disp):
     size_threshold = 5000
@@ -45,10 +47,24 @@ def output_cards(img, disp):
     cropped = [img.crop(*c) for c in boxes]
     if not cropped:
         return
-    for card in cropped:
-        read_card(card)
+    # Text updates every second
+    ranks = [read_card(card) for card in cropped]
+    if time.time() - last_time[0] > 1:
+        last_time[0] = time.time()
+        # write text
+        text[0] = []
+        for rank, c in zip(ranks, boxes):
+            if rank:
+                text[0].append((word(rank), c[0], c[1]))
+    for s, x, y in text[0]:
+        img.drawText(s, x=x, y=y, color=Color.BLACK, fontsize=56)
     img.save(disp)
 
+def word(val):
+    l = ['zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten']
+    return l[val]
+    
+    
 def find_color(card_img):
     # Takes normalized card
     # Get the top left corner (roughly)
@@ -126,7 +142,7 @@ def read_card(card_img):
     count = 0
     boxes = [blob.boundingBox() for blob in blobs]
     rank = find_rank(card_img, boxes)
-    print rank
+    return rank
     suit = find_suit(card_img, boxes)
     # display this guess
 
