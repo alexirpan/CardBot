@@ -9,9 +9,9 @@ extension = "*.jpg"
 directory = os.path.join(cards_path, extension)
 files = glob.glob(directory)
 
-size_threshold = 6000 # max pixels in box
-ratio = 1.35 # taken from a picture
-ratio_threshold = 0.2
+size_threshold = 6000
+ratio = 1.4 # taken from a picture
+normalized_side_width = 200.0 # random value
 
 def output_cards(img):
     modified = img
@@ -79,7 +79,8 @@ suits_path = "suits/"
 extension = "*.png"
 suit_imgs = glob.glob(os.path.join(suits_path, extension))
     
-def check_suit(card_img):
+def find_suit(card_img, boxes):
+    return "I have no clue"
     find_color(card_img)
     return
     boxes.sort(key=lambda b: b[0])
@@ -112,7 +113,6 @@ def read_card(card_img):
     # normalize card
     if card_img.width > card_img.height:
         card_img = card_img.rotate(90, fixed=False)
-    normalized_side_width = 200.0 # random value
     card_img = card_img.scale(card_img.width / normalized_side_width)
     # at normalized size,
     suit_width = 18
@@ -123,20 +123,44 @@ def read_card(card_img):
     # check_suit(card_img)
     blobs = card_img.edges().findBlobs()
     count = 0
-    boxlayer = DrawingLayer((card_img.width, card_img.height))
     boxes = [blob.boundingBox() for blob in blobs]
     rank = find_rank(card_img, boxes)
+    print rank
     suit = find_suit(card_img, boxes)
     # display this guess
 
 def find_rank(card_img, boxes):
     # Debug drawing
+    print boxes
+    boxlayer = DrawingLayer((card_img.width, card_img.height))
     for box in boxes:
         x,y,w,h = box
-        boxlayer.rectangle((x, y), (w,h), width=2, color=Color.GREEN)
+        if w*h > 15*15:
+            boxlayer.rectangle((x, y), (w,h), width=2, color=Color.GREEN)
+    card_img.addDrawingLayer(boxlayer)
+    card_img.applyLayers()
+    card_img.show()
+    time.sleep(1)
+    # check for face card
+    largest = [w*h for x,y,w,h in boxes]
+    boxes = zip(boxes, largest)
+    boxes.sort(key=lambda x: -x[1])
+    while 200*280 - boxes[0][1] < 10000:
+        boxes = boxes[1:]
         
+    # check largest remaining for facecard
+    if boxes[0][1] > 90*75:
+        # is face card
+        print "face card?"
+        return 10
+    numCells = len(filter(lambda x: x > 15*15, largest))
+    if numCells > 10:
+        print "Something went wrong"
+        print "Guessing 9"
+        return 9
+    return numCells
+    
         
-import random
 for file in files:
     print "New image"
     img = Image(file, colorSpace=ColorSpace.BGR).scale(0.2)
