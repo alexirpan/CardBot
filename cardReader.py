@@ -13,36 +13,79 @@ size_threshold = 6000 # max pixels in box
 ratio = 1.35 # taken from a picture
 ratio_threshold = 0.2
 
-for file in files:
-    print "New image"
-    img = Image(file).scale(0.2)
-    img.show()
-    time.sleep(0.5)
+def output_cards(img):
     modified = img
-    modified.show()
-    time.sleep(0.5)
     edges = modified.edges()
     blobs = edges.findBlobs()
-    edges.show()
-    time.sleep(0.5)
-    boxlayer = DrawingLayer((img.width, img.height))
+    #boxlayer = DrawingLayer((img.width, img.height))
     to_crop_to = []
+    edges.findBlobs().show()
+    time.sleep(1)
     for blob in blobs:
         x, y, w, h = blob.boundingBox()
         imgratio = max(w,h) / float(min(w,h))
-        print w*h
+      #  print w*h
         if w*h >= size_threshold:
-            boxlayer.rectangle((x, y), (w,h), width=2, color=Color.GREEN)
-            to_crop_to.append((x,y,w,h))
-            print max(w,h) / float(min(w,h))
-    img.addDrawingLayer(boxlayer)
-    img.applyLayers()
-    img.show()
-    time.sleep(0.5)
+     #       boxlayer.rectangle((x, y), (w,h), width=2, color=Color.GREEN)
+       #     print imgratio
+            if abs(imgratio - ratio) <= 0.5:
+                to_crop_to.append((x,y,w,h))
+    # some post processing
+    # face cards have blobs in the center, which we don't want
+    # check if a box contains another, remove inner box
+    boxes = list(to_crop_to)
+    print boxes
+    for x,y,w,h in to_crop_to:
+        remove = False
+        for x2,y2,w2,h2 in to_crop_to:
+            if x > x2 and y > y2 and w < w2 and h < h2:
+                remove = True
+                break
+        if remove:
+            boxes.remove((x,y,w,h))
+    #img.addDrawingLayer(boxlayer)
+    #img.applyLayers()
+    #img.show()
+    cropped = [img.crop(*c) for c in boxes]
+    return cropped
+
+def read_card(card_img):
+    # normalize card
+    if card_img.width > card_img.height:
+        card_img = card_img.rotate(90, fixed=False)
+    # determine suit by checking top left
+    suit_size = 20*20
+    card_img.show()
+    time.sleep(2)
+    card_img.edges().show()
+    time.sleep(2)
+    blobs = card_img.edges().findBlobs()
+    count = 0
+    boxlayer = DrawingLayer((card_img.width, card_img.height))
+    boxes = [blob.boundingBox() for blob in blobs]
+    for box in boxes:
+        x,y,w,h = box
+        boxlayer.rectangle((x, y), (w,h), width=2, color=Color.GREEN)
+        count += 1
+    # find the top left and bottom right boxes
+    # this only does leftmost + rightmost but works on cards
+    boxes.sort(key=lambda b: b[0])
+    boxlayer.rectangle(boxes[0][:2], boxes[0][2:], width=2, color=Color.RED)
+    boxlayer.rectangle(boxes[1][:2], boxes[1][2:], width=2, color=Color.RED)
+    boxes.sort(key=lambda b: -b[0])
+    boxlayer.rectangle(boxes[0][:2], boxes[0][2:], width=2, color=Color.BLUE)
+    boxlayer.rectangle(boxes[1][:2], boxes[1][2:], width=2, color=Color.BLUE)
     
-    for c in to_crop_to:
-        img.crop(*c).show()
-        time.sleep(0.5)
+    card_img.addDrawingLayer(boxlayer)
+    card_img.applyLayers()
+    card_img.show()
+    print "guess of %d" % count
+    time.sleep(2)
     
-        
-    
+import random
+for file in files:
+    print "New image"
+    img = Image(file).scale(0.2)
+    cards = output_cards(img)
+    for card in cards:
+        read_card(card)
