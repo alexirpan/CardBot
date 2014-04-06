@@ -61,7 +61,7 @@ def output_cards(img, disp):
     img.save(disp)
 
 def word(val):
-    l = ['zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten']
+    l = ['zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Face']
     return l[val]
     
     
@@ -172,7 +172,7 @@ def find_rank(card_img, boxes):
     if boxes[0][1] > 90*75:
         # is face card
         print "face card"
-        return 10
+        return 11
     numCells = len(filter(lambda x: x > cellSize and x < 4*cellSize, largest))
     if numCells > 10:
         print "Something went wrong"
