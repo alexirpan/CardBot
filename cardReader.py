@@ -49,6 +49,7 @@ def output_cards(img):
     #img.addDrawingLayer(boxlayer)
     #img.applyLayers()
     #img.show()
+    cropped = [img.crop(*c) for c in boxes]
     ranks = [read_card(card) for card in cropped]
     text = []
     for rank, c in zip(ranks, boxes):
